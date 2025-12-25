@@ -1,0 +1,561 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Semáforo Quantum — Viento, Estabilidad y Tensores</title>
+  <style>
+    :root{
+      --bg:#0b1020; --card:#121a33; --muted:#a8b3cf; --text:#eef2ff;
+      --ok:#22c55e; --warn:#f59e0b; --no:#ef4444; --line: rgba(255,255,255,.10);
+      --accent:#6ee7ff;
+    }
+    *{ box-sizing:border-box; }
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
+      background: radial-gradient(1200px 800px at 10% 10%, #182657 0%, #0b1020 55%, #070a14 100%);
+      color:var(--text);
+    }
+    header{ max-width:1100px; margin:0 auto; padding:22px 18px 10px; }
+    h1{ margin:0; font-size:18px; letter-spacing:.2px; }
+    .sub{ margin-top:6px; color:var(--muted); font-size:13px; line-height:1.35; }
+
+    main{ max-width:1100px; margin:0 auto; padding:12px 18px 26px; display:grid; gap:14px; grid-template-columns: 1.15fr .85fr; }
+    @media (max-width: 980px){ main{ grid-template-columns:1fr; } }
+
+    .card{
+      background: linear-gradient(180deg, rgba(255,255,255,.06) 0%, rgba(255,255,255,.03) 100%);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 14px;
+      box-shadow: 0 12px 30px rgba(0,0,0,.35);
+      backdrop-filter: blur(6px);
+    }
+    .topRow{ display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; }
+    .pill{
+      display:inline-flex; align-items:center; gap:10px;
+      padding:10px 12px; border-radius:999px;
+      border:1px solid rgba(255,255,255,.14);
+      background: rgba(0,0,0,.18);
+      font-size:13px;
+    }
+    .pill b{ font-size:14px; color: var(--accent); }
+
+    .sliderBox{ margin-top:10px; padding:12px; border-radius:16px; border:1px solid var(--line); background: rgba(0,0,0,.14); }
+    .label{ font-size:12px; color:var(--muted); margin-bottom:10px; }
+    input[type="range"]{ width:100%; }
+
+    .kpis{ display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin-top:12px; }
+    @media (max-width: 720px){ .kpis{ grid-template-columns:1fr; } }
+    .kpi{
+      border:1px solid var(--line); border-radius:16px; padding:12px;
+      background: rgba(0,0,0,.14);
+    }
+    .kpi .t{ color:var(--muted); font-size:12px; }
+    .kpi .v{ font-size:26px; font-weight:900; margin-top:4px; letter-spacing:.2px; }
+    .kpi .v small{ font-size:13px; color:var(--muted); font-weight:700; }
+
+    .statusWrap{ display:flex; gap:12px; align-items:stretch; margin-top:12px; flex-wrap:wrap; }
+    .light{
+      flex: 1 1 300px;
+      border-radius:18px; padding:14px; border:1px solid var(--line);
+      display:flex; gap:14px; align-items:center; background: rgba(0,0,0,.14);
+    }
+    .dot{
+      width:18px; height:18px; border-radius:999px; flex:0 0 auto;
+      box-shadow: 0 0 0 6px rgba(255,255,255,.06);
+    }
+    .statusTitle{ font-weight:900; font-size:16px; }
+    .statusText{ color:var(--muted); font-size:12px; line-height:1.35; margin-top:3px; }
+
+    .btnRow{ display:flex; gap:10px; flex-wrap:wrap; margin-top:10px; }
+    button{
+      appearance:none; border:none; cursor:pointer;
+      padding:10px 12px; border-radius:12px;
+      background: rgba(255,255,255,.10);
+      border:1px solid rgba(255,255,255,.16);
+      color: var(--text);
+      font-weight:800;
+    }
+    button:hover{ background: rgba(255,255,255,.14); }
+    select{
+      width:100%;
+      padding:10px 12px; border-radius:12px;
+      border:1px solid rgba(255,255,255,.16);
+      background: rgba(0,0,0,.20);
+      color: var(--text);
+      outline:none;
+      font-weight:800;
+    }
+
+    .note{
+      margin-top:10px; color:var(--muted); font-size:11.5px; line-height:1.45;
+      border-left: 3px solid rgba(245,158,11,.55);
+      padding-left:10px;
+    }
+    .mini{
+      color:var(--muted); font-size:12px; line-height:1.4;
+    }
+
+    details{
+      margin-top:10px;
+      border:1px solid rgba(255,255,255,.12);
+      border-radius:14px;
+      background: rgba(0,0,0,.14);
+      padding:10px 12px;
+    }
+    summary{
+      cursor:pointer;
+      font-weight:900;
+      color: var(--text);
+      list-style:none;
+    }
+    summary::-webkit-details-marker { display:none; }
+
+    table{ width:100%; border-collapse:collapse; font-size:12px; margin-top:10px; }
+    th, td{ padding:10px 8px; border-bottom:1px solid rgba(255,255,255,.10); text-align:right; }
+    th{ color:var(--muted); font-weight:700; }
+    td:first-child, th:first-child{ text-align:left; }
+
+    .badge{
+      display:inline-flex; align-items:center; gap:8px;
+      padding:6px 10px; border-radius:999px;
+      border:1px solid rgba(255,255,255,.14);
+      background: rgba(0,0,0,.18);
+      font-size:12px;
+    }
+
+    @media print{
+      body{ background:#fff; color:#000; }
+      header, .sub, .mini, .note{ color:#111 !important; }
+      .card, .kpi, .sliderBox, .light, details{ box-shadow:none; backdrop-filter:none; }
+      button{ display:none; }
+      select{ border:1px solid #ccc; color:#000; }
+    }
+  </style>
+</head>
+
+<body>
+  <header>
+    <h1>Semáforo Quantum — Estabilidad por viento (pantalla 5×3 m, torres 9.5 m, tensores a 6 m)</h1>
+    <div class="sub">
+      Calculadora operativa para exterior: ajusta viento y revisa <b>semáforo</b>. Incluye comparación: <b>sin tensores</b> (base 1×1) vs <b>con tensores a 6 m</b> usando IBC 1000 L como deadman.
+    </div>
+  </header>
+
+  <main>
+    <!-- Panel principal -->
+    <section class="card">
+      <div class="topRow">
+        <div class="pill">Viento: <b><span id="vKmh">10</span> km/h</b></div>
+        <div class="pill">Modo: <b><span id="modeLabel">—</span></b></div>
+        <div class="pill">Resultado clave: <b><span id="headline">—</span></b></div>
+      </div>
+
+      <div class="sliderBox">
+        <div class="label">Ajusta velocidad del viento (10–50 km/h, paso 10)</div>
+        <input id="vRange" type="range" min="10" max="50" step="10" value="10" />
+      </div>
+
+      <div class="kpis">
+        <div class="kpi">
+          <div class="t">Fuerza total estimada de viento sobre 15 m²</div>
+          <div class="v"><span id="forceN">—</span> <small>N</small></div>
+          <div class="mini">Referencia: ~1 N ≈ 0.102 kgf</div>
+        </div>
+
+        <div class="kpi">
+          <div class="t">Momento total estimado (respecto a piso, centro presión ~3.0 m)</div>
+          <div class="v"><span id="momentNm">—</span> <small>N·m</small></div>
+          <div class="mini">Distribución por lado asumida: 50/50 (marco rígido)</div>
+        </div>
+
+        <div class="kpi" id="kpiA">
+          <div class="t">Balastro requerido por lado (si NO hay tensores)</div>
+          <div class="v"><span id="ballastKg">—</span> <small>kg</small></div>
+          <div class="mini">Base 1×1 ⇒ brazo efectivo ≈ 0.5 m</div>
+        </div>
+
+        <div class="kpi" id="kpiB">
+          <div class="t">Tensión requerida por tensor (si HAY tensores a 6 m)</div>
+          <div class="v"><span id="tensionN">—</span> <small>N</small></div>
+          <div class="mini">Geometría: 9.5 m vertical / 6 m horizontal</div>
+        </div>
+      </div>
+
+      <div class="statusWrap">
+        <div class="light" id="statusBox">
+          <div class="dot" id="statusDot"></div>
+          <div>
+            <div class="statusTitle" id="statusTitle">—</div>
+            <div class="statusText" id="statusText">—</div>
+          </div>
+        </div>
+
+        <div class="light">
+          <div>
+            <div class="statusTitle">Acción operativa sugerida</div>
+            <div class="statusText" id="actionText">—</div>
+          </div>
+        </div>
+      </div>
+
+      <details>
+        <summary>Notas y supuestos (lo que esta app SÍ y NO cubre)</summary>
+        <div class="note">
+          <div class="badge">Propósito</div>
+          Herramienta de <b>pre-decisión</b> y comunicación interna (orden de magnitud). No sustituye ingeniería estructural ni normas.
+          <br><br>
+          <div class="badge">Supuestos principales</div>
+          <ul>
+            <li>Superficie expuesta: <b>5×3 m</b> (15 m²), tratada como placa.</li>
+            <li>Borde inferior pantalla: <b>1.50 m</b> ⇒ centro de presión ~ <b>3.0 m</b> sobre piso.</li>
+            <li>Torres: <b>9.50 m</b> de altura. Tensor se fija cerca de la parte superior (~9.5 m).</li>
+            <li>Geometría de tensor: punto de anclaje a <b>6 m</b> horizontal ⇒ ángulo fijo por triángulo (L≈11.24 m).</li>
+            <li>Distribución de carga por lado: <b>50/50</b> (se asume marco suficientemente rígido).</li>
+            <li>Peso: pantalla <b>700 kg</b> total ⇒ <b>350 kg por lado</b> + <b>60 kg</b> adicional por lado (travesaño/herrajes reportados) ⇒ <b>410 kg por lado</b>.</li>
+            <li>Modo “sin tensores” asume base 1×1: brazo efectivo de peso ~<b>0.5 m</b> (CG centrado) y brazo de balastro ~0.5 m.</li>
+            <li>Modo “con tensores” evalúa si el anclaje remoto (IBC 1000 L) puede resistir la componente horizontal por fricción: <b>F_fric = μ·W</b>.</li>
+          </ul>
+
+          <div class="badge">Viento / aerodinámica</div>
+          Se usa un modelo simple: <b>F = 0.5·ρ·V²·Cd·A·G</b>, con:
+          ρ=1.225 kg/m³, Cd=1.2, G=1.3 (ráfaga). Se aplica factor de seguridad SF=1.7 a momento.
+          <br><br>
+
+          <div class="badge">Limitaciones críticas</div>
+          <ul>
+            <li>No modela ráfagas extremas fuera de G, turbulencia por edificios, ni succión.</li>
+            <li>No valida capacidad real de ratchets, grilletes, eslingas, puntos de anclaje a torre, ni fatiga.</li>
+            <li>No valida dirección del viento 360°: si solo existe un tensor “en un sentido”, puedes quedar sin cobertura ante viento cruzado.</li>
+            <li>Si el IBC está sobre piso húmedo, vinil, tarima o pendiente, μ puede bajar mucho. Ajusta μ si quieres conservadurismo.</li>
+          </ul>
+
+          <div class="badge">Recomendación de uso</div>
+          Si el semáforo marca <b>RIESGO</b>, úsalo como disparador de acción: agregar segundo tensor en “V”, mejorar deadman,
+          aumentar perímetro, reducir altura efectiva, reorientar, o cancelar exterior.
+        </div>
+      </details>
+
+      <div class="btnRow">
+        <button id="btnPrint">Imprimir / Guardar PDF</button>
+      </div>
+    </section>
+
+    <!-- Panel lateral -->
+    <aside class="card">
+      <div class="label">Selecciona modo de evaluación</div>
+      <select id="mode">
+        <option value="guy">Con tensores a 6 m + IBC 1000 L (realidad actual)</option>
+        <option value="base">Solo base 1×1 (sin tensores, referencia)</option>
+      </select>
+
+      <div class="note" style="margin-top:12px;">
+        <b>Dato clave:</b> sin outriggers, la estabilidad por peso depende de un brazo ~0.5 m (base 1×1).  
+        Con tensores a 6 m, el brazo efectivo se vuelve “remoto” y suele ser mucho más favorable… <b>siempre que el deadman y la tensión estén controlados</b>.
+      </div>
+
+      <details open>
+        <summary>Criterios de semáforo</summary>
+        <div class="mini" style="margin-top:10px;">
+          El semáforo se basa en dos márgenes:
+          <ul>
+            <li><b>Margen estructural</b> (resistente / requerido) respecto a momento por viento (incluye SF).</li>
+            <li><b>Margen de anclaje</b> (capacidad por fricción del IBC / demanda horizontal). Solo en modo “tensores”.</li>
+          </ul>
+
+          Umbrales:
+          <ul>
+            <li><b>OK</b>: margen ≥ 1.25x y (si aplica) anclaje ≥ 1.50x</li>
+            <li><b>RIESGO</b>: margen ≥ 1.00x pero debajo del umbral OK</li>
+            <li><b>NO OPERAR</b>: margen &lt; 1.00x o anclaje &lt; 1.00x</li>
+          </ul>
+        </div>
+      </details>
+
+      <details>
+        <summary>Tabla rápida (todas las velocidades)</summary>
+        <div class="mini">Resultados por viento: fuerza total, momento total, y resultado clave según modo.</div>
+        <table>
+          <thead>
+            <tr>
+              <th>V (km/h)</th>
+              <th>F (N)</th>
+              <th>M (N·m)</th>
+              <th id="colKey">Clave</th>
+            </tr>
+          </thead>
+          <tbody id="tbl"></tbody>
+        </table>
+      </details>
+    </aside>
+  </main>
+
+  <script>
+    /************************************************************
+     * CONFIG "REALIDAD QUANTUM" (basado en lo que describiste)
+     ************************************************************/
+    const CFG = {
+      // Superficie pantalla
+      width: 5,
+      height: 3,
+      bottomClear: 1.50,            // m (confirmado)
+      // Centro de presión aproximado:
+      // h_cp = bottomClear + height/2 = 1.5 + 1.5 = 3.0 m
+
+      // Torres
+      towerHeight: 9.50,            // m (confirmado)
+
+      // Tensores (guying)
+      guyHoriz: 6.0,                // m (confirmado)
+      // Se asume 1 tensor "efectivo" por torre en dirección contraria al viento.
+      // IMPORTANTE: si el viento viene cruzado y no hay cobertura, este modelo NO lo salva.
+
+      // Peso por lado
+      screenMassTotal: 700,         // kg (confirmado)
+      extraPerSide: 60,             // kg por lado (confirmado)
+      // Asumimos 50/50 por lado:
+      massPerSide: (700/2) + 60,    // = 410 kg
+
+      // Base local (solo para modo "sin tensores")
+      baseLever: 0.50,              // m (base 1×1 ⇒ CG centrado ~0.5 m)
+      ballastLever: 0.50,           // m (si agregas balastro sobre la placa, típicamente ~0.5 m)
+
+      // Aerodinámica / ambiente (modelo simplificado)
+      rho: 1.225,                   // kg/m³
+      Cd: 1.2,                      // placa
+      gust: 1.3,                    // ráfaga (sensibilidad)
+      SF: 1.7,                      // factor de seguridad en momento
+      g: 9.81,
+
+      // Deadman IBC (fricción)
+      ibcMass: 1000,                // kg (1000 L aprox)
+      mu: 0.35,                     // fricción "media" (baja si piso húmedo / vinil / tarima)
+
+      // Semáforo
+      okMargin: 1.25,
+      warnMargin: 1.00,
+      okAnchor: 1.50,               // más conservador para anclaje
+      warnAnchor: 1.00
+    };
+
+    // Helpers
+    const fmt = (x, d=0) => Number.isFinite(x) ? x.toFixed(d) : "—";
+    const clamp0 = (x) => Math.max(0, x);
+
+    function windForce(vKmh){
+      const V = vKmh / 3.6;                          // m/s
+      const A = CFG.width * CFG.height;              // m²
+      const q = 0.5 * CFG.rho * V * V;               // Pa
+      const F = q * CFG.Cd * A * CFG.gust;           // N
+      return { F, V, A };
+    }
+
+    function moments(vKmh){
+      const {F} = windForce(vKmh);
+      const h_cp = CFG.bottomClear + (CFG.height/2); // 3.0 m
+      const Mtotal = F * h_cp;                       // N·m
+      const Mside = Mtotal / 2;                      // 50/50 por lado
+      const MreqSide = CFG.SF * Mside;
+      return { Mtotal, Mside, MreqSide, h_cp };
+    }
+
+    // Modo A: solo base 1×1, sin tensores (referencia)
+    function modeBase(vKmh){
+      const { MreqSide } = moments(vKmh);
+
+      // Momento resistente por peso propio por lado (solo masa asignada a ese lado)
+      const Mself = (CFG.massPerSide * CFG.g) * CFG.baseLever;
+
+      // Balastro adicional requerido sobre la placa (brazo ~0.5 m)
+      const denom = CFG.g * CFG.ballastLever;
+      const ballastKg = denom > 1e-6 ? clamp0((MreqSide - Mself) / denom) : Infinity;
+
+      const Mres = Mself + (ballastKg * CFG.g * CFG.ballastLever);
+      const margin = (MreqSide > 0) ? (Mres / MreqSide) : Infinity;
+
+      return {
+        ballastKg,
+        margin,
+        headline: `${fmt(ballastKg,0)} kg por lado`,
+        detail: `Estimación de balastro por lado usando base 1×1 (brazo ~0.5 m).`
+      };
+    }
+
+    // Modo B: con tensores a 6 m + IBC
+    function modeGuy(vKmh){
+      const { MreqSide } = moments(vKmh);
+
+      // Necesitamos contrarrestar el momento requerido con un esfuerzo horizontal arriba de la torre:
+      // M = H * towerHeight => Hreq = Mreq / towerHeight
+      const Hreq = MreqSide / CFG.towerHeight; // N
+
+      // Geometría del cable:
+      const L = Math.sqrt(CFG.towerHeight**2 + CFG.guyHoriz**2);
+      const horizFactor = CFG.guyHoriz / L;      // ≈ 0.534
+      const vertFactor  = CFG.towerHeight / L;   // ≈ 0.845
+
+      // Tensión requerida:
+      const Treq = Hreq / horizFactor;
+
+      // Deadman por fricción:
+      const W = CFG.ibcMass * CFG.g;
+      const Ffric = CFG.mu * W;                 // N
+      const anchorMargin = (Hreq > 0) ? (Ffric / Hreq) : Infinity;
+
+      // En modo guy, el "margen" principal lo medimos como margen de anclaje
+      // (la capacidad de generar el H requerido sin que el deadman se mueva).
+      // Y damos un margen "geométrico" adicional: si se puede aplicar esa tensión, el momento se cumple por construcción.
+      // Aun así, dejamos un margen estructural conceptual = 1 (porque estamos diseñando para Mreq).
+      const structuralMargin = 1.0;
+
+      return {
+        Hreq,
+        Treq,
+        horizFactor,
+        vertFactor,
+        anchorMargin,
+        headline: `${fmt(Treq,0)} N tensión / tensor`,
+        detail: `Reacción horizontal requerida ≈ ${fmt(Hreq,0)} N. Anclaje IBC (μ=${CFG.mu}) margen ≈ ${fmt(anchorMargin,2)}x.`
+      };
+    }
+
+    function setStatus(state){
+      const box = document.getElementById('statusBox');
+      const dot = document.getElementById('statusDot');
+      const title = document.getElementById('statusTitle');
+      const text = document.getElementById('statusText');
+
+      let color = getComputedStyle(document.documentElement).getPropertyValue('--ok').trim();
+      if(state.level === "NO OPERAR") color = getComputedStyle(document.documentElement).getPropertyValue('--no').trim();
+      if(state.level === "RIESGO") color = getComputedStyle(document.documentElement).getPropertyValue('--warn').trim();
+
+      dot.style.background = color;
+      title.textContent = state.level;
+      text.textContent = state.msg;
+      box.style.borderColor = "rgba(255,255,255,.14)";
+    }
+
+    function statusForBase(res){
+      if(res.margin < CFG.warnMargin){
+        return {
+          level:"NO OPERAR",
+          msg:"Con base 1×1 sin tensores, el margen es insuficiente. Riesgo de volcamiento; requerirías balastro muy elevado o rediseño (outriggers/guying)."
+        };
+      }
+      if(res.margin < CFG.okMargin){
+        return {
+          level:"RIESGO",
+          msg:"Margen reducido. Aumenta balastro, incrementa huella (outriggers) o migra a tensores con deadman controlado."
+        };
+      }
+      return {
+        level:"OK",
+        msg:"Margen aceptable bajo este modelo. Aun así, valida dirección de viento, piso, y mantén perímetro de seguridad."
+      };
+    }
+
+    function statusForGuy(res){
+      if(res.anchorMargin < CFG.warnAnchor){
+        return {
+          level:"NO OPERAR",
+          msg:"El deadman (IBC por fricción) es insuficiente para la demanda horizontal estimada. Alto riesgo de deslizamiento del anclaje o pérdida de tensión."
+        };
+      }
+      if(res.anchorMargin < CFG.okAnchor){
+        return {
+          level:"RIESGO",
+          msg:"Anclaje con margen limitado. Recomendado: mejorar deadman (más masa / mejor fricción / amarre bajo), agregar segundo tensor en V, y reforzar perímetro."
+        };
+      }
+      return {
+        level:"OK",
+        msg:"Anclaje con margen aceptable bajo este modelo. Aun así: controla tensión, verifica herrajes, y cubre direcciones de viento (ideal 2 tensores en V por torre)."
+      };
+    }
+
+    function actionText(level, mode){
+      if(level==="NO OPERAR"){
+        return mode==="guy"
+          ? "Detener o no montar exterior. Aumentar capacidad de deadman (masa/fricción), agregar puntos de anclaje, o migrar a outriggers/anclaje certificado."
+          : "No operar con solo base 1×1. Implementar tensores, aumentar huella con outriggers, o replantear montaje (altura/orientación).";
+      }
+      if(level==="RIESGO"){
+        return mode==="guy"
+          ? "Mejorar deadman (tapete anti-slip, amarre bajo, masa extra), agregar segundo tensor en “V” y controlar tensión con verificación."
+          : "Incrementar balastro y/o huella (outriggers). Considerar tensores a 6 m para reducir balastro y mejorar estabilidad.";
+      }
+      return mode==="guy"
+        ? "Operar con control: checklist de tensión/herrajes, perímetro, monitoreo de viento y plan de paro. Ideal cubrir viento cruzado con tensores adicionales."
+        : "Operar con cautela: confirma piso/nivelación y monitoreo de viento. Para exterior real, preferible tensores u outriggers.";
+    }
+
+    function render(){
+      const v = +document.getElementById('vRange').value;
+      const mode = document.getElementById('mode').value;
+
+      document.getElementById('vKmh').textContent = fmt(v,0);
+      document.getElementById('modeLabel').textContent = (mode==="guy")
+        ? "Con tensores + IBC"
+        : "Solo base 1×1";
+
+      const {F} = windForce(v);
+      const {Mtotal} = moments(v);
+
+      document.getElementById('forceN').textContent = fmt(F,0);
+      document.getElementById('momentNm').textContent = fmt(Mtotal,0);
+
+      // KPI switches
+      document.getElementById('kpiA').style.display = (mode==="base") ? "block" : "none";
+      document.getElementById('kpiB').style.display = (mode==="guy") ? "block" : "none";
+
+      let headline = "—";
+      let state = {level:"—", msg:"—"};
+
+      if(mode==="base"){
+        const res = modeBase(v);
+        document.getElementById('ballastKg').textContent = fmt(res.ballastKg,0);
+        headline = res.headline;
+        state = statusForBase(res);
+      }else{
+        const res = modeGuy(v);
+        document.getElementById('tensionN').textContent = fmt(res.Treq,0);
+        headline = `${fmt(res.Treq,0)} N (≈ ${fmt(res.Treq/9.81,0)} kgf)`;
+        state = statusForGuy(res);
+      }
+
+      document.getElementById('headline').textContent = headline;
+      setStatus(state);
+      document.getElementById('actionText').textContent = actionText(state.level, mode);
+
+      // Tabla
+      const speeds = [10,20,30,40,50];
+      const tbody = document.getElementById('tbl');
+      const colKey = document.getElementById('colKey');
+      colKey.textContent = (mode==="guy") ? "Tensión (N)" : "Balastro (kg)";
+
+      tbody.innerHTML = speeds.map(sp=>{
+        const {F} = windForce(sp);
+        const {Mtotal} = moments(sp);
+        const key = (mode==="guy") ? modeGuy(sp).Treq : modeBase(sp).ballastKg;
+        return `
+          <tr>
+            <td>${sp}</td>
+            <td>${fmt(F,0)}</td>
+            <td>${fmt(Mtotal,0)}</td>
+            <td>${fmt(key,0)}</td>
+          </tr>
+        `;
+      }).join("");
+    }
+
+    // Events
+    document.getElementById('vRange').addEventListener('input', render);
+    document.getElementById('mode').addEventListener('change', render);
+    document.getElementById('btnPrint').addEventListener('click', ()=> window.print());
+
+    render();
+  </script>
+</body>
+</html>
