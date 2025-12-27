@@ -1,0 +1,707 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Quantum | Semáforos Estructuras & Rigging</title>
+  <style>
+    :root{
+      --bg:#0b1020; --card:#121a33; --muted:#a8b3cf; --text:#eef2ff;
+      --ok:#22c55e; --warn:#f59e0b; --no:#ef4444; --line: rgba(255,255,255,.10);
+      --accent:#6ee7ff;
+    }
+    *{ box-sizing:border-box; }
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
+      background: radial-gradient(1200px 800px at 10% 10%, #182657 0%, #0b1020 55%, #070a14 100%);
+      color:var(--text);
+    }
+    header{ max-width:1180px; margin:0 auto; padding:18px 18px 10px; }
+    h1{ margin:0; font-size:18px; letter-spacing:.2px; }
+    .sub{ margin-top:6px; color:var(--muted); font-size:13px; line-height:1.35; }
+
+    main{ max-width:1180px; margin:0 auto; padding:12px 18px 26px; display:grid; gap:14px; grid-template-columns: 1.2fr .8fr; }
+    @media (max-width: 980px){ main{ grid-template-columns:1fr; } }
+
+    .card{
+      background: linear-gradient(180deg, rgba(255,255,255,.06) 0%, rgba(255,255,255,.03) 100%);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 14px;
+      box-shadow: 0 12px 30px rgba(0,0,0,.35);
+      backdrop-filter: blur(6px);
+    }
+
+    .tabs{ display:flex; gap:8px; flex-wrap:wrap; }
+    .tab{
+      cursor:pointer;
+      padding:10px 12px;
+      border-radius:999px;
+      border:1px solid rgba(255,255,255,.14);
+      background: rgba(0,0,0,.18);
+      font-weight:900;
+      font-size:12.5px;
+      color:var(--text);
+      user-select:none;
+    }
+    .tab.active{
+      border-color: rgba(110,231,255,.35);
+      box-shadow: 0 0 0 4px rgba(110,231,255,.10);
+      color: var(--accent);
+    }
+
+    .topRow{ display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-top:12px; }
+    .pill{
+      display:inline-flex; align-items:center; gap:10px;
+      padding:10px 12px; border-radius:999px;
+      border:1px solid rgba(255,255,255,.14);
+      background: rgba(0,0,0,.18);
+      font-size:13px;
+    }
+    .pill b{ font-size:14px; color: var(--accent); }
+
+    .grid{ display:grid; gap:12px; grid-template-columns: 1fr 1fr; margin-top:12px; }
+    @media (max-width: 720px){ .grid{ grid-template-columns:1fr; } }
+
+    .kpi{
+      border:1px solid var(--line); border-radius:16px; padding:12px;
+      background: rgba(0,0,0,.14);
+    }
+    .kpi .t{ color:var(--muted); font-size:12px; }
+    .kpi .v{ font-size:26px; font-weight:900; margin-top:4px; letter-spacing:.2px; }
+    .kpi .v small{ font-size:13px; color:var(--muted); font-weight:700; }
+
+    .sliderBox{ margin-top:10px; padding:12px; border-radius:16px; border:1px solid var(--line); background: rgba(0,0,0,.14); }
+    .label{ font-size:12px; color:var(--muted); margin-bottom:10px; }
+    input[type="range"]{ width:100%; }
+    input[type="number"], select{
+      width:100%;
+      padding:10px 12px;
+      border-radius:12px;
+      border:1px solid rgba(255,255,255,.16);
+      background: rgba(0,0,0,.20);
+      color: var(--text);
+      outline:none;
+      font-weight:800;
+    }
+
+    .statusWrap{ display:flex; gap:12px; align-items:stretch; margin-top:12px; flex-wrap:wrap; }
+    .light{
+      flex: 1 1 320px;
+      border-radius:18px; padding:14px; border:1px solid var(--line);
+      display:flex; gap:14px; align-items:center; background: rgba(0,0,0,.14);
+    }
+    .dot{
+      width:18px; height:18px; border-radius:999px; flex:0 0 auto;
+      box-shadow: 0 0 0 6px rgba(255,255,255,.06);
+    }
+    .statusTitle{ font-weight:900; font-size:16px; }
+    .statusText{ color:var(--muted); font-size:12px; line-height:1.35; margin-top:3px; }
+
+    details{
+      margin-top:10px;
+      border:1px solid rgba(255,255,255,.12);
+      border-radius:14px;
+      background: rgba(0,0,0,.14);
+      padding:10px 12px;
+    }
+    summary{ cursor:pointer; font-weight:900; list-style:none; }
+    summary::-webkit-details-marker { display:none; }
+
+    .note{
+      margin-top:10px; color:var(--muted); font-size:11.5px; line-height:1.45;
+      border-left: 3px solid rgba(245,158,11,.55);
+      padding-left:10px;
+    }
+
+    .btnRow{ display:flex; gap:10px; flex-wrap:wrap; margin-top:10px; }
+    button{
+      appearance:none; border:none; cursor:pointer;
+      padding:10px 12px; border-radius:12px;
+      background: rgba(255,255,255,.10);
+      border:1px solid rgba(255,255,255,.16);
+      color: var(--text);
+      font-weight:800;
+    }
+    button:hover{ background: rgba(255,255,255,.14); }
+
+    .hidden{ display:none !important; }
+
+    @media print{
+      body{ background:#fff; color:#000; }
+      header, .sub, .note{ color:#111 !important; }
+      .card, .kpi, .sliderBox, .light, details{ box-shadow:none; backdrop-filter:none; }
+      button{ display:none; }
+      .tab{ border:1px solid #ccc; background:#fff; color:#000; }
+      .tab.active{ box-shadow:none; }
+    }
+  </style>
+</head>
+
+<body>
+<header>
+  <h1>Quantum — Semáforos de Estructuras & Rigging (App única)</h1>
+  <div class="sub">
+    App operativa para exterior: <b>Viento+Tensores</b>, <b>Rigging por punto</b>, y <b>Presión en piso/base</b>.
+    Diseñada para staff en teléfono (inputs mínimos + semáforo + acciones).
+  </div>
+</header>
+
+<main>
+  <!-- Panel principal -->
+  <section class="card">
+    <div class="tabs">
+      <div class="tab active" data-tab="wind">1) Viento + Tensores</div>
+      <div class="tab" data-tab="rigging">2) Rigging por Punto</div>
+      <div class="tab" data-tab="ground">3) Base / Presión en Piso</div>
+    </div>
+
+    <!-- TAB: WIND -->
+    <div id="tab-wind">
+      <div class="topRow">
+        <div class="pill">Viento: <b><span id="vKmh">10</span> km/h</b></div>
+        <div class="pill">Modo: <b><span id="windModeLabel">Con tensores + IBC</span></b></div>
+        <div class="pill">Clave: <b><span id="windHeadline">—</span></b></div>
+      </div>
+
+      <div class="sliderBox">
+        <div class="label">Ajusta velocidad del viento (10–50 km/h, paso 10)</div>
+        <input id="vRange" type="range" min="10" max="50" step="10" value="10" />
+      </div>
+
+      <div class="grid">
+        <div class="kpi">
+          <div class="t">Fuerza total estimada sobre 15 m²</div>
+          <div class="v"><span id="windForceN">—</span> <small>N</small></div>
+        </div>
+        <div class="kpi">
+          <div class="t">Momento total estimado (centro presión ~3.0 m)</div>
+          <div class="v"><span id="windMomentNm">—</span> <small>N·m</small></div>
+        </div>
+
+        <div class="kpi" id="kpiBallast" style="display:none;">
+          <div class="t">Balastro estimado por lado (sin tensores, base 1×1)</div>
+          <div class="v"><span id="ballastKg">—</span> <small>kg</small></div>
+        </div>
+        <div class="kpi" id="kpiGuy">
+          <div class="t">Tensión requerida por tensor (por lado)</div>
+          <div class="v"><span id="tensionN">—</span> <small>N</small></div>
+        </div>
+
+        <div class="kpi" id="kpiAnchor">
+          <div class="t">Margen deadman IBC por fricción (capacidad / demanda)</div>
+          <div class="v"><span id="anchorMargin">—</span> <small>x</small></div>
+        </div>
+        <div class="kpi">
+          <div class="t">Demanda horizontal al anclaje (por lado)</div>
+          <div class="v"><span id="hReq">—</span> <small>N</small></div>
+        </div>
+      </div>
+
+      <div class="statusWrap">
+        <div class="light" id="windStatusBox">
+          <div class="dot" id="windDot"></div>
+          <div>
+            <div class="statusTitle" id="windStatusTitle">—</div>
+            <div class="statusText" id="windStatusText">—</div>
+          </div>
+        </div>
+        <div class="light">
+          <div>
+            <div class="statusTitle">Acción sugerida</div>
+            <div class="statusText" id="windAction">—</div>
+          </div>
+        </div>
+      </div>
+
+      <details>
+        <summary>Supuestos (Viento + Tensores)</summary>
+        <div class="note">
+          <ul>
+            <li>Pantalla 5×3 m (15 m²), borde inferior 1.50 m ⇒ centro presión ~3.0 m.</li>
+            <li>Torres 9.50 m; tensor a punto a 6 m horizontal (longitud ~11.24 m).</li>
+            <li>Carga por lado: 350 kg (pantalla) + 60 kg extra = 410 kg por lado.</li>
+            <li>Distribución 50/50 por lado (marco suficientemente rígido).</li>
+            <li>Modelo viento: F=0.5·ρ·V²·Cd·A·G con ρ=1.225, Cd=1.2, G=1.3. SF=1.7 aplicado a momento.</li>
+            <li>Deadman IBC: 1000 kg por fricción, μ=0.35 (si piso húmedo/vinil/tarima puede bajar).</li>
+            <li>No cubre viento cruzado 360° si no hay tensores en “V” o cobertura múltiple.</li>
+          </ul>
+        </div>
+      </details>
+    </div>
+
+    <!-- TAB: RIGGING -->
+    <div id="tab-rigging" class="hidden">
+      <div class="topRow">
+        <div class="pill">Rigging: <b>Utilización</b></div>
+        <div class="pill">Clave: <b><span id="rigHeadline">—</span></b></div>
+      </div>
+
+      <div class="grid">
+        <div>
+          <div class="label">Capacidad permitida (WLL) por punto (kg)</div>
+          <input id="rigWllKg" type="number" min="50" step="10" value="500" />
+        </div>
+        <div>
+          <div class="label">Carga total colgada (kg)</div>
+          <input id="rigTotalKg" type="number" min="0" step="10" value="1000" />
+        </div>
+        <div>
+          <div class="label">Número de puntos</div>
+          <input id="rigPoints" type="number" min="1" step="1" value="4" />
+        </div>
+        <div>
+          <div class="label">Factor dinámico</div>
+          <select id="rigDyn">
+            <option value="1.2">1.2 (bajo)</option>
+            <option value="1.4" selected>1.4 (medio)</option>
+            <option value="1.6">1.6 (alto)</option>
+          </select>
+        </div>
+        <div>
+          <div class="label">Ángulo de eslinga (penalización)</div>
+          <select id="rigAngle">
+            <option value="1.00" selected>0° (vertical)</option>
+            <option value="1.15">30°</option>
+            <option value="1.41">45°</option>
+            <option value="2.00">60°</option>
+          </select>
+        </div>
+        <div>
+          <div class="label">Factor “desbalance” (carga no uniforme)</div>
+          <select id="rigUnbal">
+            <option value="1.00">1.00 (ideal)</option>
+            <option value="1.10" selected>1.10 (típico)</option>
+            <option value="1.20">1.20 (riesgo)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="grid">
+        <div class="kpi">
+          <div class="t">Carga por punto (kg) ajustada</div>
+          <div class="v"><span id="rigKgPerPoint">—</span> <small>kg</small></div>
+        </div>
+        <div class="kpi">
+          <div class="t">Utilización vs WLL</div>
+          <div class="v"><span id="rigUtil">—</span> <small>%</small></div>
+        </div>
+      </div>
+
+      <div class="statusWrap">
+        <div class="light" id="rigStatusBox">
+          <div class="dot" id="rigDot"></div>
+          <div>
+            <div class="statusTitle" id="rigStatusTitle">—</div>
+            <div class="statusText" id="rigStatusText">—</div>
+          </div>
+        </div>
+        <div class="light">
+          <div>
+            <div class="statusTitle">Acción sugerida</div>
+            <div class="statusText" id="rigAction">—</div>
+          </div>
+        </div>
+      </div>
+
+      <details>
+        <summary>Supuestos (Rigging)</summary>
+        <div class="note">
+          Esta sección es una verificación operativa: distribuye carga total entre puntos y aplica factores por dinámica, ángulo y desbalance.
+          No valida hardware específico, accesorios ni certificaciones. Para decisiones críticas, validar con ingeniería/rigging lead.
+        </div>
+      </details>
+    </div>
+
+    <!-- TAB: GROUND -->
+    <div id="tab-ground" class="hidden">
+      <div class="topRow">
+        <div class="pill">Base/Piso: <b>Presión</b></div>
+        <div class="pill">Clave: <b><span id="gHeadline">—</span></b></div>
+      </div>
+
+      <div class="grid">
+        <div>
+          <div class="label">Carga vertical sobre la base (kg)</div>
+          <input id="gLoadKg" type="number" min="0" step="10" value="1000" />
+        </div>
+        <div>
+          <div class="label">Área de apoyo (m²)</div>
+          <input id="gArea" type="number" min="0.01" step="0.01" value="1.00" />
+        </div>
+        <div>
+          <div class="label">Superficie</div>
+          <select id="gSurface">
+            <option value="300">Concreto / losa (≈300 kPa)</option>
+            <option value="200">Asfalto (≈200 kPa)</option>
+            <option value="100">Tierra compacta (≈100 kPa)</option>
+            <option value="60">Pasto / tierra blanda (≈60 kPa)</option>
+            <option value="30" selected>Arena / playa (≈30 kPa)</option>
+            <option value="50">Tarima / decking (≈50 kPa*)</option>
+          </select>
+        </div>
+        <div>
+          <div class="label">Factor humedad/irregularidad</div>
+          <select id="gWet">
+            <option value="1.0">1.0 (seco/estable)</option>
+            <option value="1.2" selected>1.2 (típico exterior)</option>
+            <option value="1.5">1.5 (mojado/irregular)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="grid">
+        <div class="kpi">
+          <div class="t">Presión estimada</div>
+          <div class="v"><span id="gKpa">—</span> <small>kPa</small></div>
+        </div>
+        <div class="kpi">
+          <div class="t">Utilización vs “capacidad” del piso</div>
+          <div class="v"><span id="gUtil">—</span> <small>%</small></div>
+        </div>
+      </div>
+
+      <div class="statusWrap">
+        <div class="light" id="gStatusBox">
+          <div class="dot" id="gDot"></div>
+          <div>
+            <div class="statusTitle" id="gStatusTitle">—</div>
+            <div class="statusText" id="gStatusText">—</div>
+          </div>
+        </div>
+        <div class="light">
+          <div>
+            <div class="statusTitle">Acción sugerida</div>
+            <div class="statusText" id="gAction">—</div>
+          </div>
+        </div>
+      </div>
+
+      <details>
+        <summary>Notas (Base/Piso)</summary>
+        <div class="note">
+          Los kPa por superficie son <b>umbrales conservadores</b> para operación; no sustituyen estudio geotécnico ni cálculo estructural.
+          En arena/pasto, casi siempre conviene <b>aumentar área</b> con mats/cribbing/durmientes para bajar presión.
+        </div>
+      </details>
+    </div>
+
+    <div class="btnRow">
+      <button id="btnPrint">Imprimir / PDF</button>
+    </div>
+  </section>
+
+  <!-- Panel lateral (config mínima) -->
+  <aside class="card">
+    <div class="label">Modo del semáforo de Viento</div>
+    <select id="windMode">
+      <option value="guy" selected>Con tensores a 6 m + IBC 1000 L (realidad)</option>
+      <option value="base">Solo base 1×1 (referencia)</option>
+    </select>
+
+    <div class="note">
+      <b>Uso recomendado:</b> el staff usa esto como “gating” para decisiones.  
+      Si marca <b>RIESGO</b> o <b>NO OPERAR</b>, se detona acción: más cobertura (tensores en V), mejor deadman, más área de base, o cancelar exterior.
+    </div>
+
+    <details>
+      <summary>Semáforo: reglas</summary>
+      <div class="note">
+        <b>OK</b> cuando margen ≥ 1.25x (y en tensores: anclaje ≥ 1.50x).<br>
+        <b>RIESGO</b> cuando ≥ 1.00x pero debajo de OK.<br>
+        <b>NO OPERAR</b> cuando &lt; 1.00x o el anclaje no da.
+      </div>
+    </details>
+
+    <details>
+      <summary>Tip operativo (muy importante)</summary>
+      <div class="note">
+        Si el viento puede venir cruzado, un solo tensor “en una dirección” no te salva.  
+        El estándar práctico suele ser <b>2 tensores en V por torre</b> o cobertura múltiple, según espacio.
+      </div>
+    </details>
+  </aside>
+</main>
+
+<script>
+  // ===== Helpers =====
+  const fmt = (x, d=0) => Number.isFinite(x) ? x.toFixed(d) : "—";
+  const clamp0 = (x) => Math.max(0, x);
+  const css = (v)=> getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+
+  function setLight(dotId, titleId, textId, level, msg){
+    const dot = document.getElementById(dotId);
+    const title = document.getElementById(titleId);
+    const text = document.getElementById(textId);
+    let color = css('--ok');
+    if(level==="RIESGO") color = css('--warn');
+    if(level==="NO OPERAR") color = css('--no');
+    dot.style.background = color;
+    title.textContent = level;
+    text.textContent = msg;
+  }
+
+  // ===== CONFIG (Quantum presets - oculto al staff) =====
+  const CFG = {
+    // WIND model (realidad)
+    width: 5,
+    height: 3,
+    bottomClear: 1.50,
+    towerHeight: 9.50,
+    guyHoriz: 6.0,
+    screenMassTotal: 700,
+    extraPerSide: 60,
+    massPerSide: (700/2) + 60, // 410 kg
+
+    // Aerodinámica (simple)
+    rho: 1.225,
+    Cd: 1.2,
+    gust: 1.3,
+    SF: 1.7,
+    g: 9.81,
+
+    // Base local (solo referencia)
+    baseLever: 0.50,
+    ballastLever: 0.50,
+
+    // IBC deadman
+    ibcMass: 1000,
+    mu: 0.35,
+
+    // Semáforo thresholds
+    okMargin: 1.25,
+    warnMargin: 1.00,
+    okAnchor: 1.50,
+    warnAnchor: 1.00,
+
+    // Rigging thresholds (utilización)
+    rig_ok: 70,     // % de WLL
+    rig_warn: 85,   // % de WLL
+    rig_no: 100,    // >=100% NO OPERAR
+
+    // Ground thresholds (utilización vs “capacidad”)
+    g_ok: 60,
+    g_warn: 85,
+    g_no: 100
+  };
+
+  // ===== TAB control =====
+  const tabs = document.querySelectorAll('.tab');
+  function showTab(name){
+    tabs.forEach(t=> t.classList.toggle('active', t.dataset.tab===name));
+    document.getElementById('tab-wind').classList.toggle('hidden', name!=='wind');
+    document.getElementById('tab-rigging').classList.toggle('hidden', name!=='rigging');
+    document.getElementById('tab-ground').classList.toggle('hidden', name!=='ground');
+  }
+  tabs.forEach(t=> t.addEventListener('click', ()=> showTab(t.dataset.tab)));
+
+  // ===== WIND computations =====
+  function windForce(vKmh){
+    const V = vKmh / 3.6;
+    const A = CFG.width * CFG.height;
+    const q = 0.5 * CFG.rho * V * V;
+    const F = q * CFG.Cd * A * CFG.gust;
+    return {F, V, A};
+  }
+  function windMoments(vKmh){
+    const {F} = windForce(vKmh);
+    const h_cp = CFG.bottomClear + (CFG.height/2); // 3.0m
+    const Mtotal = F * h_cp;
+    const Mside = Mtotal / 2;
+    const MreqSide = CFG.SF * Mside;
+    return {Mtotal, Mside, MreqSide};
+  }
+  function windModeBase(vKmh){
+    const {MreqSide} = windMoments(vKmh);
+    const Mself = (CFG.massPerSide * CFG.g) * CFG.baseLever;
+    const denom = CFG.g * CFG.ballastLever;
+    const ballastKg = denom > 1e-6 ? clamp0((MreqSide - Mself) / denom) : Infinity;
+    const Mres = Mself + ballastKg * denom;
+    const margin = (MreqSide>0) ? (Mres / MreqSide) : Infinity;
+    return {ballastKg, margin};
+  }
+  function windModeGuy(vKmh){
+    const {MreqSide} = windMoments(vKmh);
+    const Hreq = MreqSide / CFG.towerHeight;
+
+    const L = Math.sqrt(CFG.towerHeight**2 + CFG.guyHoriz**2);
+    const horizFactor = CFG.guyHoriz / L; // ~0.534
+    const Treq = Hreq / horizFactor;
+
+    const W = CFG.ibcMass * CFG.g;
+    const Ffric = CFG.mu * W;
+    const anchorMargin = (Hreq>0) ? (Ffric / Hreq) : Infinity;
+
+    return {Hreq, Treq, anchorMargin};
+  }
+
+  function renderWind(){
+    const v = +document.getElementById('vRange').value;
+    const mode = document.getElementById('windMode').value;
+
+    document.getElementById('vKmh').textContent = fmt(v,0);
+    document.getElementById('windModeLabel').textContent = mode==="guy" ? "Con tensores + IBC" : "Solo base 1×1";
+
+    const {F} = windForce(v);
+    const {Mtotal} = windMoments(v);
+
+    document.getElementById('windForceN').textContent = fmt(F,0);
+    document.getElementById('windMomentNm').textContent = fmt(Mtotal,0);
+
+    // Toggle KPIs
+    document.getElementById('kpiBallast').style.display = mode==="base" ? "block" : "none";
+    document.getElementById('kpiGuy').style.display = mode==="guy" ? "block" : "none";
+    document.getElementById('kpiAnchor').style.display = mode==="guy" ? "block" : "none";
+
+    let level="OK", msg="", action="", headline="—";
+
+    if(mode==="base"){
+      const r = windModeBase(v);
+      document.getElementById('ballastKg').textContent = fmt(r.ballastKg,0);
+      headline = `${fmt(r.ballastKg,0)} kg/lado`;
+
+      if(r.margin < CFG.warnMargin){
+        level="NO OPERAR";
+        msg="Con base 1×1 sin tensores, el margen es insuficiente. El balastro requerido se vuelve poco viable para operación segura en exterior.";
+        action="Implementar tensores (ideal en V), aumentar huella (outriggers/mats), reducir altura efectiva o cancelar exterior.";
+      }else if(r.margin < CFG.okMargin){
+        level="RIESGO";
+        msg="Margen reducido con base 1×1. Pequeñas ráfagas o errores de montaje pueden volverte inestable.";
+        action="Aumentar balastro y huella; preferible migrar a tensores con deadman controlado.";
+      }else{
+        level="OK";
+        msg="Margen aceptable bajo el modelo. Aun así, monitorea viento y asegura perímetro.";
+        action="Checklist y monitoreo; para exterior real, tensores u outriggers siguen siendo buena práctica.";
+      }
+
+      document.getElementById('windHeadline').textContent = headline;
+      document.getElementById('hReq').textContent = "—";
+      document.getElementById('tensionN').textContent = "—";
+      document.getElementById('anchorMargin').textContent = "—";
+    }else{
+      const r = windModeGuy(v);
+      document.getElementById('tensionN').textContent = fmt(r.Treq,0);
+      document.getElementById('hReq').textContent = fmt(r.Hreq,0);
+      document.getElementById('anchorMargin').textContent = fmt(r.anchorMargin,2);
+      headline = `${fmt(r.Treq,0)} N (≈ ${fmt(r.Treq/9.81,0)} kgf)`;
+
+      if(r.anchorMargin < CFG.warnAnchor){
+        level="NO OPERAR";
+        msg="El deadman IBC por fricción no alcanza margen. Riesgo de deslizamiento del anclaje y pérdida de tensión.";
+        action="Mejorar deadman (más masa, más fricción, amarre bajo, mats/cribbing), agregar anclajes o cambiar estrategia (outriggers/anclaje certificado).";
+      }else if(r.anchorMargin < CFG.okAnchor){
+        level="RIESGO";
+        msg="Anclaje con margen limitado. Ráfagas o piso húmedo pueden reducir fricción y degradar estabilidad.";
+        action="Agregar segundo tensor en V por torre, mejorar deadman y controlar tensión con verificación.";
+      }else{
+        level="OK";
+        msg="Anclaje con margen aceptable bajo este modelo. Ojo: la dirección del viento importa; ideal cobertura múltiple (V).";
+        action="Operar con checklist de tensión/herrajes, perímetro, monitoreo de viento y plan de paro.";
+      }
+
+      document.getElementById('windHeadline').textContent = headline;
+    }
+
+    setLight('windDot','windStatusTitle','windStatusText', level, msg);
+    document.getElementById('windAction').textContent = action;
+  }
+
+  // ===== RIGGING computations =====
+  function renderRigging(){
+    const wll = +document.getElementById('rigWllKg').value;
+    const total = +document.getElementById('rigTotalKg').value;
+    const n = Math.max(1, +document.getElementById('rigPoints').value);
+    const dyn = +document.getElementById('rigDyn').value;
+    const angleFactor = +document.getElementById('rigAngle').value;
+    const unbal = +document.getElementById('rigUnbal').value;
+
+    // Carga por punto ajustada (modelo operativo)
+    const kgPerPoint = (total / n) * dyn * angleFactor * unbal;
+    const util = (wll > 0) ? (100 * kgPerPoint / wll) : Infinity;
+
+    document.getElementById('rigKgPerPoint').textContent = fmt(kgPerPoint,0);
+    document.getElementById('rigUtil').textContent = fmt(util,0);
+    document.getElementById('rigHeadline').textContent = `${fmt(util,0)}% de WLL`;
+
+    let level="OK", msg="", action="";
+    if(util >= CFG.rig_no){
+      level="NO OPERAR";
+      msg="La carga ajustada por punto iguala o excede la WLL. Condición insegura para operar.";
+      action="Agregar puntos, reducir carga total, mejorar ángulos (más vertical), revisar factor dinámico y redistribución.";
+    }else if(util >= CFG.rig_warn){
+      level="RIESGO";
+      msg="Utilización alta. Cualquier desbalance, ángulo real peor o dinámica puede llevarte a sobrepasar capacidad.";
+      action="Agregar puntos o bajar carga; corregir ángulos; evitar movimiento/dinámica; validar con rigging lead.";
+    }else if(util >= CFG.rig_ok){
+      level="RIESGO";
+      msg="Utilización media-alta. Aún puede ser operable, pero requiere control y verificación de ángulos y hardware.";
+      action="Checklist completo, medir/confirmar ángulos, revisar herrajes, y buscar margen (más puntos o menor carga).";
+    }else{
+      level="OK";
+      msg="Utilización con margen razonable bajo este modelo.";
+      action="Mantener checklist, verificar hardware y ángulos reales. Recordar que esto es una verificación operativa, no un dictamen.";
+    }
+
+    setLight('rigDot','rigStatusTitle','rigStatusText', level, msg);
+    document.getElementById('rigAction').textContent = action;
+  }
+
+  // ===== GROUND computations =====
+  function renderGround(){
+    const loadKg = +document.getElementById('gLoadKg').value;
+    const area = Math.max(0.01, +document.getElementById('gArea').value);
+    const capKpa = +document.getElementById('gSurface').value;
+    const wet = +document.getElementById('gWet').value;
+
+    // presión (kPa): (kg*g)/area /1000
+    const kPa = (loadKg * CFG.g / area) / 1000 * wet;
+    const util = (capKpa > 0) ? (100 * kPa / capKpa) : Infinity;
+
+    document.getElementById('gKpa').textContent = fmt(kPa,1);
+    document.getElementById('gUtil').textContent = fmt(util,0);
+    document.getElementById('gHeadline').textContent = `${fmt(util,0)}% vs piso`;
+
+    let level="OK", msg="", action="";
+    if(util >= CFG.g_no){
+      level="NO OPERAR";
+      msg="La presión estimada iguala o excede el umbral operativo del piso. Riesgo de asentamiento/hundimiento/colapso local.";
+      action="Aumentar área de apoyo (mats/durmientes/cribbing), redistribuir carga, cambiar ubicación o cancelar exterior.";
+    }else if(util >= CFG.g_warn){
+      level="RIESGO";
+      msg="Presión alta. En arena/pasto/tarima puede degradarse rápido con humedad y vibración.";
+      action="Incrementar área de apoyo, usar mats, verificar nivelación y monitorear asentamiento.";
+    }else if(util >= CFG.g_ok){
+      level="RIESGO";
+      msg="Presión moderada. Condición operable con control, pero cuidar humedad/irregularidad.";
+      action="Usar placas de reparto como estándar, revisar nivelación y asegurar perímetro.";
+    }else{
+      level="OK";
+      msg="Presión con margen razonable bajo este modelo.";
+      action="Mantener buenas prácticas: mats/cribbing en exterior, nivelación y monitoreo.";
+    }
+
+    setLight('gDot','gStatusTitle','gStatusText', level, msg);
+    document.getElementById('gAction').textContent = action;
+  }
+
+  // ===== Events =====
+  document.getElementById('vRange').addEventListener('input', ()=>{ renderWind(); });
+  document.getElementById('windMode').addEventListener('change', ()=>{ renderWind(); });
+  document.getElementById('btnPrint').addEventListener('click', ()=> window.print());
+
+  ['rigWllKg','rigTotalKg','rigPoints','rigDyn','rigAngle','rigUnbal'].forEach(id=>{
+    document.getElementById(id).addEventListener('input', renderRigging);
+    document.getElementById(id).addEventListener('change', renderRigging);
+  });
+
+  ['gLoadKg','gArea','gSurface','gWet'].forEach(id=>{
+    document.getElementById(id).addEventListener('input', renderGround);
+    document.getElementById(id).addEventListener('change', renderGround);
+  });
+
+  // Init
+  renderWind(); renderRigging(); renderGround();
+</script>
+</body>
+</html>
